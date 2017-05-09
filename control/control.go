@@ -35,7 +35,6 @@ import (
 	"google.golang.org/grpc"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/asaskevich/govalidator"
 
 	"github.com/intelsdi-x/gomit"
 
@@ -711,18 +710,10 @@ func (p *pluginControl) UnsubscribeDeps(id string) []serror.SnapError {
 	return p.subscriptionGroups.Remove(id)
 }
 
-// Checks if string is URL
-func isURL(url string) bool {
-	if !govalidator.IsURL(url) || !strings.HasPrefix(url, "http") {
-		return false
-	}
-	return true
-}
-
 func (p *pluginControl) verifyPlugin(lp *loadedPlugin) error {
 	if lp.Details.Uri != nil {
 		// remote plugin
-		if !isURL(lp.Details.Uri.String()) {
+		if core.IsUri(lp.Details.Uri.String()) {
 			return fmt.Errorf(fmt.Sprintf("Remote plugin failed to load: bad uri: (%x)", lp.Details.Uri))
 		}
 		return nil

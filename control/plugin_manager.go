@@ -496,6 +496,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		}
 
 		colClient := ap.client.(client.PluginCollectorClient)
+		defer ap.client.(client.PluginCollectorClient).Close()
 
 		cfg := plugin.ConfigType{
 			ConfigDataNode: cfgNode,
@@ -611,6 +612,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 		})
 		return nil, se
 	}
+
 	pmLogger.WithFields(log.Fields{
 		"_block": "unload-plugin",
 		"path":   plugin.Details.Exec,

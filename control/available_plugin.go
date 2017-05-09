@@ -243,6 +243,9 @@ func (a *availablePlugin) Stop(r string) error {
 		"block":       "stop",
 		"plugin_name": a,
 	}).Info("stopping available plugin")
+	if a.IsRemote() {
+		return a.client.Close()
+	}
 	return a.client.Kill(r)
 }
 
