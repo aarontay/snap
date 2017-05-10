@@ -48,10 +48,9 @@ type PluginType int
 
 func ToPluginType(name string) (PluginType, error) {
 	pts := map[string]PluginType{
-		"collector":           0,
-		"processor":           1,
-		"publisher":           2,
-		"streaming collector": 3,
+		"collector": 0,
+		"processor": 1,
+		"publisher": 2,
 	}
 	t, ok := pts[name]
 	if !ok {
@@ -65,7 +64,6 @@ func CheckPluginType(id PluginType) bool {
 		0: "collector",
 		1: "processor",
 		2: "publisher",
-		3: "streaming collector",
 	}
 
 	_, ok := pts[id]
