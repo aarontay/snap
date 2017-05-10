@@ -440,7 +440,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	if err != nil {
 		pmLogger.WithFields(log.Fields{
 			"_block":         "load-plugin",
-			"plugin-type":    "collector",
+			"plugin-type":    resp.Type.String(),
 			"error":          err.Error(),
 			"plugin-name":    ap.Name(),
 			"plugin-version": ap.Version(),
@@ -456,19 +456,19 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 	lPlugin.LoadedTime = time.Now()
 	lPlugin.State = LoadedState
 
-	if resp.Type == plugin.CollectorPluginType {
+	if resp.Type == plugin.CollectorPluginType || resp.Type == plugin.StreamCollectorPluginType {
 		cfgNode := p.pluginConfig.getPluginConfigDataNode(core.PluginType(resp.Type), resp.Meta.Name, resp.Meta.Version)
 
+		defaults := cdata.NewNode()
 		if lPlugin.ConfigPolicy != nil {
 			// Get plugin config defaults
-			defaults := cdata.NewNode()
 			for _, cpolicy := range lPlugin.ConfigPolicy.GetAll() {
 				_, errs := cpolicy.AddDefaults(defaults.Table())
 				if len(errs.Errors()) > 0 {
 					for _, err := range errs.Errors() {
 						pmLogger.WithFields(log.Fields{
 							"_block":         "load-plugin",
-							"plugin-type":    "collector",
+							"plugin-type":    resp.Type.String(),
 							"plugin-name":    ap.Name(),
 							"plugin-version": ap.Version(),
 							"plugin-id":      ap.ID(),
@@ -484,7 +484,7 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 			if err != nil {
 				pmLogger.WithFields(log.Fields{
 					"_block":         "load-plugin",
-					"plugin-type":    "collector",
+					"plugin-type":    resp.Type.String(),
 					"error":          err.Error(),
 					"plugin-name":    ap.Name(),
 					"plugin-version": ap.Version(),
@@ -498,15 +498,23 @@ func (p *pluginManager) LoadPlugin(details *pluginDetails, emitter gomit.Emitter
 		colClient := ap.client.(client.PluginCollectorClient)
 		defer ap.client.(client.PluginCollectorClient).Close()
 
+		var metricTypes []core.Metric
 		cfg := plugin.ConfigType{
 			ConfigDataNode: cfgNode,
 		}
 
-		metricTypes, err := colClient.GetMetricTypes(cfg)
-		if err != nil {
+		metricTypes, err = colClient.GetMetricTypes(cfg)
+		if err != nil && resp.Type == plugin.CollectorPluginType {
 			pmLogger.WithFields(log.Fields{
 				"_block":      "load-plugin",
 				"plugin-type": "collector",
+				"error":       err.Error(),
+			}).Error("error in getting metric types")
+			return nil, serror.New(err)
+		} else if err != nil {
+			pmLogger.WithFields(log.Fields{
+				"_block":      "load-plugin",
+				"plugin-type": "streamCollector",
 				"error":       err.Error(),
 			}).Error("error in getting metric types")
 			return nil, serror.New(err)
@@ -663,7 +671,7 @@ func (p *pluginManager) UnloadPlugin(pl core.Plugin) (*loadedPlugin, serror.Snap
 	p.loadedPlugins.remove(plugin.Key())
 
 	// Remove any metrics from the catalog if this was a collector
-	if plugin.TypeName() == "collector" {
+	if plugin.TypeName() == "collector" || plugin.TypeName() == "streamCollector" {
 		p.metricCatalog.RmUnloadedPluginMetrics(plugin)
 	}
 
