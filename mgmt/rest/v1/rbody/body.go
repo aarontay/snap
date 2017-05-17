@@ -40,7 +40,11 @@ type Body interface {
 }
 
 func Write(code int, b Body, w http.ResponseWriter) {
-	w.Header().Set("Deprecated", "true")
+	deprStrBool, deprWhat, deprInfo := "true", "apiV1", "https://github.com/intelsdi-x/snap/issues/1637"
+	w.Header().Set("Deprecated", deprStrBool)
+	w.Header().Set("DeprWhat", deprWhat)
+	w.Header().Set("DeprInfo", deprInfo)
+
 	resp := &APIResponse{
 		Meta: &APIResponseMeta{
 			Code:    code,
