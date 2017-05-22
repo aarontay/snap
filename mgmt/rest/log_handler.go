@@ -22,8 +22,6 @@ package rest
 import (
 	"net/http"
 
-	"strconv"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/urfave/negroni"
 )
@@ -52,17 +50,14 @@ func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.Ha
 		"method":      r.Method,
 		"url":         r.URL.Path,
 		"status-code": res.Status(),
-		"status":      deprecated(http.StatusText(res.Status()), rw.Header().Get("Deprecated"), rw.Header().Get("DeprWhat"), rw.Header().Get("DeprInfo")),
+		"status":      http.StatusText(res.Status()),
 	}).Debug("API response")
-}
 
-// 'deprecate' is string boolean value to deprecate, mapped to 'Deprecated' key
-// 'deprWhat' is what is being deprecated, mapped to 'DeprWhat' key
-// 'deprInfo' is link to more information on what is being deprecated, mapped to 'DeprInfo' key
-func deprecated(status string, deprecate string, deprWhat string, deprInfo string) string {
-	dep, err := strconv.ParseBool(deprecate)
-	if err != nil || !dep {
-		return status
+	if deprecationInfo := rw.Header().Get("Deprecated"); len(deprecationInfo) != 0 {
+		restLogger.WithFields(log.Fields{
+			"method": r.Method,
+			"url":    r.URL.Path,
+		}).Warning(deprecationInfo)
 	}
-	return status + ". '" + deprWhat + "' has been depricated. Find more information here: " + deprInfo
+
 }
